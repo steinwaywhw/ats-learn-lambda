@@ -12,6 +12,7 @@ staload "set.sats"
 extern fun file_get_stream (string): stream char 
 extern fun test_untyped (): void 
 extern fun test_simple (): void
+extern fun test_infer (): void
 
 (******************************)
 
@@ -34,7 +35,7 @@ implement file_get_stream (path) = sm where {
 
 (******************************)
 
-local 
+(*local 
 	staload "untyped.sats"
 	staload "sexp.sats"
 	staload _ = "untyped.dats"
@@ -124,7 +125,7 @@ implement test_untyped () = {
 
 }
 
-end
+end*)
 
 (******************************)
 
@@ -157,8 +158,39 @@ end
 //end
 
 
+(******************************)
+
+local 
+	staload "infer.sats"
+	staload "sexp.sats"
+	staload _ = "infer.dats"
+	staload _ = "sexp.dats"
+in 
+
+implement test_infer () = {
+	fun term_from_string (str: string): term = let 
+		assume output_t = sexp 
+
+		val t = list_foldr<char,stream char> (string_explode str, $delay StreamNil (), lam (x, xs) => $delay StreamCons (x, xs))
+		val t = parser_apply (parser_sexp_sexp (), $UNSAFE.cast{input_t} t, lam (x, input) => x)
+	in 
+		try 
+			parse_term t
+		with 
+			~LamParsingException x => (println! x; $raise LamParsingException x)
+	end
+
+	#define :: ListCons
+	#define nil ListNil
+
+	val add = term_from_string "(let ((add (lam (x y) (+ x y)))) (add 3 4))"
+	val _ = show (term_alpha add)
+}
+
+end
+
 implement main0 () = {
-	val _ = test_untyped ()
+	val _ = test_infer ()
 }
 
 

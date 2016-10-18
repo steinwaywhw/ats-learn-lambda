@@ -12,7 +12,7 @@ tc:
 	$(PATSOPT) -tc -d f.dats
 
 clean: 
-	$(RMF) *ats.c *.o
+	$(RMF) *ats.c *.o a.out*
 
 # test: untyped.sats untyped.dats testall.dats $(PARCC)/sexp.sats $(PARCC)/sexp.dats
 # test: simple.sats simple.dats testall.dats $(PARCC)/sexp.sats $(PARCC)/sexp.dats
