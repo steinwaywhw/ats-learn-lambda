@@ -25,6 +25,10 @@ datatype type =
 | TypeVar   of string 
 | TypeArrow of (type, type)
 
+
+overload >> with TermApp 
+//overload ~> with TypeArrow
+
 typedef rank = int
 datatype desc = 
 //| 

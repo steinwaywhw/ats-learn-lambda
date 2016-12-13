@@ -421,6 +421,41 @@ in
 	| _ => Nothing ()
 end
 
+implement church<nat> (n) = let 
+	val a = TyBoundVar 0
+	val z = TmBoundVar 0
+
+	(* 𝚲a.𝛌s[a->a].𝛌z[a].z *)
+	val zero = TmTyLam (TmLam (TyArrow (a, a), TmLam (a, z)))
+in
+	if n = 0 
+	then zero 
+	else succ (church<nat> (n-1))
+end
+
+implement unchurch<nat> (term) = let 
+	fun count (t: term): nat = 
+		case- t of 
+		| TmBoundVar 0            => 0
+		| TmApp (TmBoundVar 1, t) => 1 + count t
+in 
+	case- eval term of 
+	| TmTyLam (TmLam (TyArrow (TyBoundVar 0, TyBoundVar 0), TmLam (TyBoundVar 0, n))) => count n
+end
+
+implement church<bool> (t) = 
+	if t
+	then TmTyLam (TmLam (TyBoundVar 0, TmLam (TyBoundVar 0, TmBoundVar 0)))
+	else TmTyLam (TmLam (TyBoundVar 0, TmLam (TyBoundVar 0, TmBoundVar 1)))
+
+implement unchurch<bool> (t) = 
+	case- eval t of 
+	| TmTyLam (TmLam (TyBoundVar 0, TmLam (TyBoundVar 0, TmBoundVar 0))) => true
+	| TmTyLam (TmLam (TyBoundVar 0, TmLam (TyBoundVar 0, TmBoundVar 1))) => false
+
+
+
+
 (* beta-normal form *)
 implement eval (term) = let 
 	val _ = if DEBUG then (show_any "eval => "; show_any term; show_any "\n")
@@ -492,15 +527,15 @@ in
 	eval (TmLam (ty_nat, TmLam (ty_nat, TmTyLam (TmLam (a ~> a, TmLam (a, x >> a >> s >> (y >> a >> s >> z)))))))
 end
 
-(* 𝛌x[nat].𝛌y[nat].y[nat](tm_add(x))(church<nat> 0)      <- very slow
-   𝛌x[nat].𝛌y[nat].𝚲a.𝛌s[a->a].𝛌z[a].y[a](𝛌m[a].x[a]sm)z <- a bit quicker
+(* 𝛌x[nat].𝛌y[nat].y[nat](tm_add(x))(church<nat> 0)  <- very slow
+   𝛌x[nat].𝛌y[nat].𝚲a.𝛌s[a->a].𝛌z[a].y[a](x[a]s)z    <- a bit quicker
 *)
 implement tm_mul = let 
 	val x = TmBoundVar 3
 	val y = TmBoundVar 2
 	val s = TmBoundVar 1
 	val z = TmBoundVar 0
-	val m = TmBoundVar 0
+//	val m = TmBoundVar 0
 	val a = TyBoundVar 0
 	val shift = lam (x:term):term => let val- TmBoundVar n = x in TmBoundVar (n+1) end 
 
@@ -510,7 +545,7 @@ implement tm_mul = let
 //				TmLam (TyBoundVar 0, TmBoundVar 0)))
 in 
 //	eval (TmLam (ty_nat, TmLam (ty_nat, TmApp (TmApp (TmTyApp (y, ty_nat), TmApp (tm_add, x)), zero))))
-	eval (TmLam (ty_nat, TmLam (ty_nat, TmTyLam (TmLam (a ~> a, TmLam (a, y >> a >> (TmLam (a, shift x >> a >> shift s >> m) >> z)))))))
+	eval (TmLam (ty_nat, TmLam (ty_nat, TmTyLam (TmLam (a ~> a, TmLam (a, y >> a >> (x >> a >> s) >> z))))))
 end
 
 implement tm_ackermann = let 
@@ -534,8 +569,9 @@ in
 end
 
 (* 𝛌x[nat].𝛌y[nat].y[nat](tm_mul(x))(church<nat> 1)
+   𝛌x[nat].𝛌y[nat].𝚲a.𝛌s[a->a].𝛌z[a].y[a](1[a](x[a]s)z)(sz)    <- a bit quicker
 *)
-implement tm_exp = let 
+implement tm_exp = let
 	val x = TmBoundVar 1
 	val y = TmBoundVar 0
 
@@ -546,47 +582,6 @@ implement tm_exp = let
 in 
 	eval (TmLam (ty_nat, TmLam (ty_nat, y >> ty_nat >> (tm_mul >> x) >> one)))
 end
-
-implement church<nat> (n) = let 
-	val a = TyBoundVar 0
-	val z = TmBoundVar 0
-
-	(* 𝚲a.𝛌s[a->a].𝛌z[a].z *)
-	val zero = TmTyLam (TmLam (TyArrow (a, a), TmLam (a, z)))
-in
-	if n = 0 
-	then zero 
-	else succ (church<nat> (n-1))
-end
-
-implement unchurch<nat> (term) = let 
-	fun count (t: term): nat = 
-		case- t of 
-		| TmBoundVar 0            => 0
-		| TmApp (TmBoundVar 1, t) => 1 + count t
-in 
-	case- eval term of 
-	| TmTyLam (TmLam (TyArrow (TyBoundVar 0, TyBoundVar 0), TmLam (TyBoundVar 0, n))) => count n
-end
-
-implement church<bool> (t) = 
-	if t
-	then TmTyLam (TmLam (TyBoundVar 0, TmLam (TyBoundVar 0, TmBoundVar 0)))
-	else TmTyLam (TmLam (TyBoundVar 0, TmLam (TyBoundVar 0, TmBoundVar 1)))
-
-implement unchurch<bool> (t) = 
-	case- eval t of 
-	| TmTyLam (TmLam (TyBoundVar 0, TmLam (TyBoundVar 0, TmBoundVar 0))) => true
-	| TmTyLam (TmLam (TyBoundVar 0, TmLam (TyBoundVar 0, TmBoundVar 1))) => false
-
-
-
-
-
-
-
-
-
 
 
 
@@ -648,11 +643,11 @@ implement main0 () = {
 //	val _ = show_any "\n"
 //	val _ = show_any (typeof tm_exp)
 //	val _ = show_any "\n"
-	val _ = show_any (typeof tm_ackermann)
+	val _ = show_any (typeof tm_exp)
 	val _ = show_any "\n"
 //	val _ = show_any (eval (ackermann (church<nat> 2, church<nat> 1)))
 
-	val _ = show_any<nat> (unchurch<nat> (ackermann (church<nat> 3, church<nat> 2)))
+	val _ = show_any<nat> (unchurch<nat> (exp (church<nat> 3, church<nat> 2)))
 //	val _ = show_any tm_mul
 	val _ = show_any "\n"
 //	val _ = show_any<nat> (unchurch<nat> (exp (church<nat> 2, church<nat> 5)))

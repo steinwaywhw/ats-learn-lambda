@@ -391,6 +391,9 @@ implement main0 () = {
 			| ~Cycle () => print_string "Cycle\n\n"
 			| ~Unbound name => (print_string "Unbound: "; print_string name; print_newline (); print_newline ())
 
+	infixl (=) >> 
+//	infixr (=) ~>
+
 	//λx.x
 	//(a->a)
 	val id = TermLam ("x", TermVar "x")
@@ -486,8 +489,18 @@ implement main0 () = {
 
 	val test16 = TermFix ("rec", "x", TermApp (TermVar "rec", TermVar "x"))
 	val _ = runtest (test16, "unknow")
-	//All Done
 
+	val test17 = TermLet ("i", TermLam ("x", TermLet ("y", TermVar "x", TermVar "y")), TermVar "i")
+	val _ = runtest (test17, "")
+
+	//let id = λx.x in id(id)
+	//(c->c)
+	fun apply_id (n: int): term = 
+		if n = 1 
+		then TermApp (TermVar "id", TermVar "id") 
+		else TermApp (apply_id (n - 1), TermVar "id")
+	val test18 = TermLet ("id", TermLam ("x", TermVar "x"), apply_id 1000)
+	val _ = runtest (test18, "(c->c)")
 	
 }
 
